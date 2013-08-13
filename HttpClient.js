@@ -1,5 +1,4 @@
 var net = require('net');
-
 module.exports = (function() {
     var http = {
         version: "1.0",
@@ -9,7 +8,7 @@ module.exports = (function() {
         stExp: /(?:HTTP\/.*?\s+?(\d+))|(Location:(.*))/g,
         method: "GET",
         getHeader: function() {
-            var header = this.method + " " + this.url.val + " HTTP/1.1\n" + "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\n" + "Accept-Encoding: gzip,deflate,sdch\n" + "Host: " + http.host + ":" + http.port + "\n" + "Cache-Control: max-age=0\n" + "Connection: close\n" + "Accept-Language: zh-cn,zh;q=0.8\n" + "User-Agent: Mozilla/5.0 (Macintosh;Intel Mac OS X 10_8_0) AppleWebKit/537.36 (KHTML,like Gecko) Chrome/28.0.1500.95 Safari/537.36\n\n";
+            var header = this.method + " " + this.url.val + " HTTP/1.1\n" + "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\n" + "Host: " + http.host + ":" + http.port + "\n" + "Cache-Control: max-age=0\n" + "Connection: close\n" + "Accept-Language: zh-cn,zh;q=0.8\n" + "User-Agent: Mozilla/5.0 (Macintosh;Intel Mac OS X 10_8_0) AppleWebKit/537.36 (KHTML,like Gecko) Chrome/28.0.1500.95 Safari/537.36\n\n";
             return header;
         },
         url: {
@@ -31,23 +30,24 @@ module.exports = (function() {
                 send: function(params, callback) {
                     var socket = new net.Socket();
                     socket.setEncoding("UTF-8");
-                    socket.connect(http.port, http.host,
-                    function() {
-                        console.log("******************Request Header Start*******************");
-                        console.log(http.getHeader());
-                        console.log("%s\n", "******************Request Header End*********************");
+                    socket.connect(http.port, http.host,function() {
+                        console.log("\n%s","*****Request Header Start*****");
+                        console.log(http.getHeader().trim());
+                        console.log("%s\n", "*****Request Header End*****");
                         socket.write(http.getHeader());
                     });
-                    socket.on('data',
-                    function(data) {
-                        var match = data.match(http.stExp);
+
+					var html = "";
+                    socket.on('data',function(data) {
+						html+=data;
+                    }).on('end' ,function(  ){
+						var match = html.match(http.stExp);
                         if (match) {
-                            console.log("******************Response Header Start*******************");
-                            var array = data.split('\r\n\r\n');
-                            var header = array[0],
-                            body = array[1];
+                            var index = html.indexOf('\r\n\r\n');
+                            var header = html.substring(0,index),body = html.substring(index);
+                            console.log("*****Response Header Start*****");
                             console.log(header);
-                            console.log("%s\n", "******************Response Header End*********************");
+                            console.log("%s\n", "*****Response Header End*****");
                             var status = match[0] && match[0].split(" ")[1],
                             location = match[1] && match[1].split(" ")[1];
                         }
@@ -56,17 +56,9 @@ module.exports = (function() {
                             ep.request("GET", location, callback);
                             return;
                         }
-                        if (body && body.trim() == "") return;
-                        //console.log("******************Response Body Start*******************");
-                        if (match) {
-                            callback(body);
-                        } else {
-                            callback(data);
-                        }
-                        //console.log("******************Response Body End*********************");
-                    });
-                    socket.setTimeout(20000,
-                    function() {
+						callback(body);
+					});
+                    socket.setTimeout(20000, function() {
                         console.log("Request time out!");
                         socket.destroy();
                     });
