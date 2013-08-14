@@ -6,11 +6,19 @@ module.exports = (function() {
         host: "127.0.0.1",
         regExp: /http[s]?:\/\/([\w\.]+)(?:\:([\d]*))?.*/,
         stExp: /(?:HTTP\/.*?\s+?(\d+))|(Location:(.*))/g,
+	    cookieExp : /(?:Set-Cookie:)(.*?)(?=;)/g,
         method: "GET",
+	    cookie : "",
         getHeader: function() {
-            var header = this.method + " " + this.url.val + " HTTP/1.1\n" + "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\n" + "Host: " + http.host + ":" + http.port + "\n" + "Cache-Control: max-age=0\n" + "Connection: close\n" + "Accept-Language: zh-cn,zh;q=0.8\n" + "User-Agent: Mozilla/5.0 (Macintosh;Intel Mac OS X 10_8_0) AppleWebKit/537.36 (KHTML,like Gecko) Chrome/28.0.1500.95 Safari/537.36\n\n";
+            var header = this.method + " " + this.url.val + " HTTP/1.1\n" + "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\n" + "Host: " + http.host + ":" + http.port + "\n" + "Cache-Control: max-age=0\n" + "Connection: close\n" + "Accept-Language: zh-cn,zh;q=0.8\n" + "User-Agent: Mozilla/5.0 (Macintosh;Intel Mac OS X 10_8_0) AppleWebKit/537.36 (KHTML,like Gecko) Chrome/28.0.1500.95 Safari/537.36\n" + (http.cookie.trim()!=""? "Cookie: " + http.cookie:"") + "\n\n";
             return header;
         },
+	    clear : function( )  {
+				this.port = 80;
+				this.host = "127.0.0.1";
+				this.method = "GET";
+				this.cookie = "";
+			},
         url: {
             val: "",
             parse: function(url) {
@@ -25,6 +33,13 @@ module.exports = (function() {
                 }
             }
         },
+	    parseCookie : function(responseHeader){
+						  var cookies = '', r;
+						  while((r = http.cookieExp.exec(responseHeader))!=null){
+							  cookies += r[1];
+						  }
+						  http.cookie = cookies;
+					  },
         createClient: function() {
             return {
                 send: function(params, callback) {
@@ -36,7 +51,6 @@ module.exports = (function() {
                         console.log("%s\n", "*****Request Header End*****");
                         socket.write(http.getHeader());
                     });
-
 					var html = "";
                     socket.on('data',function(data) {
 						html+=data;
@@ -47,6 +61,7 @@ module.exports = (function() {
                             var header = html.substring(0,index),body = html.substring(index);
                             console.log("*****Response Header Start*****");
                             console.log(header);
+							var cookies = http.parseCookie(header);
                             console.log("%s\n", "*****Response Header End*****");
                             var status = match[0] && match[0].split(" ")[1],
                             location = match[1] && match[1].split(" ")[1];
@@ -59,8 +74,9 @@ module.exports = (function() {
 						callback(body);
 					});
                     socket.setTimeout(20000, function() {
-                        console.log("Request time out!");
+                        console.log("Request time out! 404");
                         socket.destroy();
+						http.clear();
                     });
                 }
             }
