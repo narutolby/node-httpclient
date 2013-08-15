@@ -90,6 +90,7 @@ module.exports = (function() {
                             return;
                         }
                         callback(body);
+                        http.clear();
                     });
                     socket.setTimeout(10000,
                     function() {
