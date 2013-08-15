@@ -9,14 +9,14 @@ module.exports = (function() {
         cookieExp: /(?:Set-Cookie:)(.*?)(?=;)/g,
         method: "GET",
         cookie: "",
-	    redirectTimes : 0,
+        redirectTimes: 0,
         getHeader: function() {
-            var header = this.method + " " + this.url.val +
-	                    " HTTP/1.1\n" + "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\n" + 
-	                    "Host: " + http.host + ":" + http.port + "\n" + "Cache-Control: max-age=0\n" + "Connection: close\n" + 
-	                    "Accept-Language: zh-cn,zh;q=0.8\n" + 
-	                    "User-Agent: Mozilla/5.0 (Macintosh;Intel Mac OS X 10_8_0) AppleWebKit/537.36 (KHTML,like Gecko) Chrome/28.0.1500.95 Safari/537.36\n" +
-	                    (http.cookie.trim() != "" ? "Cookie: " + http.cookie: "") + "\n\n";
+            var header = this.method + " " + this.url.val + " HTTP/1.1\n" + 
+                         "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\n" + 
+                         "Host: " + http.host + ":" + http.port + "\n" + "Cache-Control: max-age=0\n" + 
+                         "Connection: close\n" + "Accept-Language: zh-cn,zh;q=0.8\n" + 
+                         "User-Agent: Mozilla/5.0 (Macintosh;Intel Mac OS X 10_8_0) AppleWebKit/537.36 (KHTML,like Gecko) Chrome/28.0.1500.95 Safari/537.36\n" + 
+                         (http.cookie.trim() != "" ? "Cookie: " + http.cookie: "") + "\n\n";
             return header;
         },
         clear: function() {
@@ -24,7 +24,7 @@ module.exports = (function() {
             this.host = "127.0.0.1";
             this.method = "GET";
             this.cookie = "";
-			this.redirectTimes = 0;
+            this.redirectTimes = 0;
         },
         url: {
             val: "",
@@ -66,6 +66,7 @@ module.exports = (function() {
                         html += data;
                     }).on('end',
                     function() {
+                        socket.destroy();
                         var match = html.match(http.stExp);
                         if (match) {
                             var index = html.indexOf('\r\n\r\n');
@@ -79,12 +80,12 @@ module.exports = (function() {
                             location = match[1] && match[1].split(" ")[1];
                         }
                         if ((status == 302 || status == 301) && location) {
-                            socket.destroy();
-							if(http.redirectTimes==10){
-							 console.warn("\n%s","重定向多次!" );
-                              return; 
-							}
-							http.redirectTimes++;
+                            if (http.redirectTimes == 10) {
+                                console.warn("\n%s", "Redirect too times!");
+                                http.clear();
+                                return;
+                            }
+                            http.redirectTimes++;
                             ep.request("GET", location, callback);
                             return;
                         }
@@ -92,7 +93,7 @@ module.exports = (function() {
                     });
                     socket.setTimeout(10000,
                     function() {
-                        console.log("Request time out! 404");
+                        console.log("Request time out!");
                         socket.destroy();
                         http.clear();
                     });
@@ -111,7 +112,7 @@ module.exports = (function() {
         get: function(url, callback, method) {
             var correct = http.url.parse(url);
             if (!correct) {
-                console.warn("您输入的URL不正确!");
+                console.warn("URL is not correct!");
                 return;
             }
             method && (http.method = method);
