@@ -91,7 +91,9 @@ module.exports = (function() {
                         }
                         callback(body);
                         http.clear();
-                    });
+                    }).on('error',function(e){
+                        console.warn( "oops! Connection Error!" ) ;
+					});
                     socket.setTimeout(10000,
                     function() {
                         console.log("Request time out!");
